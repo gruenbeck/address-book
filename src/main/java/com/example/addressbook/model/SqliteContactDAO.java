@@ -11,7 +11,6 @@ public class SqliteContactDAO implements IContactDAO {
         connection = SqliteConnection.getInstance();
         createTable();
         // Used for testing, to be removed later
-        insertSampleData();
     }
 
     private void createTable() {
@@ -51,66 +50,65 @@ public class SqliteContactDAO implements IContactDAO {
     @Override
     public void addContact(Contact contact) {
         try {
-            PreparedStatement insertContact = connection.prepareStatement(
-                    "INSERT INTO contacts (id, firstName, lastName, phone, email) VALUES (?, ?, ?, ?, ?)"
-            );
-            insertContact.setInt(1, contact.getId());
-            insertContact.setString(2, contact.getFirstName());
-            insertContact.setString(3, contact.getLastName());
-            insertContact.setString(4, contact.getPhone());
-            insertContact.setString(5, contact.getEmail());
-            insertContact.execute();
-        } catch (SQLException ex) {
-            System.err.println(ex);
+            PreparedStatement statement = connection.prepareStatement("INSERT INTO contacts (firstName, lastName, phone, email) VALUES (?, ?, ?, ?)");
+            statement.setString(1, contact.getFirstName());
+            statement.setString(2, contact.getLastName());
+            statement.setString(3, contact.getPhone());
+            statement.setString(4, contact.getEmail());
+            statement.executeUpdate();
+            // Set the id of the new contact
+            ResultSet generatedKeys = statement.getGeneratedKeys();
+            if (generatedKeys.next()) {
+                contact.setId(generatedKeys.getInt(1));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
     @Override
     public void updateContact(Contact contact) {
         try {
-            PreparedStatement updateContact = connection.prepareStatement(
-                    "UPDATE contacts SET firstName = ?, lastName = ?, phone = ?, email = ? WHERE id = ?"
-            );
-            updateContact.setString(1, contact.getFirstName());
-            updateContact.setString(2, contact.getLastName());
-            updateContact.setString(3, contact.getPhone());
-            updateContact.setString(4, contact.getEmail());
-            updateContact.setInt(5, contact.getId());
-            updateContact.execute();
-        } catch (SQLException ex) {
-            System.err.println(ex);
+            PreparedStatement statement = connection.prepareStatement("UPDATE contacts SET firstName = ?, lastName = ?, phone = ?, email = ? WHERE id = ?");
+            statement.setString(1, contact.getFirstName());
+            statement.setString(2, contact.getLastName());
+            statement.setString(3, contact.getPhone());
+            statement.setString(4, contact.getEmail());
+            statement.setInt(5, contact.getId());
+            statement.executeUpdate();
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
     @Override
     public void deleteContact(Contact contact) {
         try {
-            PreparedStatement deleteContact = connection.prepareStatement("DELETE FROM contacts WHERE id = ?");
-            deleteContact.setInt(1, contact.getId());
-            deleteContact.execute();
-        } catch (SQLException ex) {
-            System.err.println(ex);
+            PreparedStatement statement = connection.prepareStatement("DELETE FROM contacts WHERE id = ?");
+            statement.setInt(1, contact.getId());
+            statement.executeUpdate();
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
     @Override
     public Contact getContact(int id) {
         try {
-            PreparedStatement getContact = connection.prepareStatement("SELECT * FROM contacts WHERE id = ?");
-            getContact.setInt(1, id);
-            ResultSet rs = getContact.executeQuery();
-            if (rs.next()) {
-                Contact contact = new Contact(
-                        rs.getString("firstName"),
-                        rs.getString("lastName"),
-                        rs.getString("email"),
-                        rs.getString("phone")
-                );
+            PreparedStatement statement = connection.prepareStatement("SELECT * FROM contacts WHERE id = ?");
+            statement.setInt(1, id);
+            ResultSet resultSet = statement.executeQuery();
+            if (resultSet.next()) {
+                String firstName = resultSet.getString("firstName");
+                String lastName = resultSet.getString("lastName");
+                String phone = resultSet.getString("phone");
+                String email = resultSet.getString("email");
+                Contact contact = new Contact(firstName, lastName, email, phone);
                 contact.setId(id);
                 return contact;
             }
-        } catch (SQLException ex) {
-            System.err.println(ex);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
         return null;
     }
@@ -119,20 +117,21 @@ public class SqliteContactDAO implements IContactDAO {
     public List<Contact> getAllContacts() {
         List<Contact> contacts = new ArrayList<>();
         try {
-            Statement getAll = connection.createStatement();
-            ResultSet rs = getAll.executeQuery("SELECT * FROM contacts");
-            while (rs.next()) {
-                Contact contact = new Contact(
-                        rs.getString("firstName"),
-                        rs.getString("lastName"),
-                        rs.getString("email"),
-                        rs.getString("phone")
-                );
-                contact.setId(rs.getInt("id"));
+            Statement statement = connection.createStatement();
+            String query = "SELECT * FROM contacts";
+            ResultSet resultSet = statement.executeQuery(query);
+            while (resultSet.next()) {
+                int id = resultSet.getInt("id");
+                String firstName = resultSet.getString("firstName");
+                String lastName = resultSet.getString("lastName");
+                String phone = resultSet.getString("phone");
+                String email = resultSet.getString("email");
+                Contact contact = new Contact(firstName, lastName, email, phone);
+                contact.setId(id);
                 contacts.add(contact);
             }
-        } catch (SQLException ex) {
-            System.err.println(ex);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
         return contacts;
     }
